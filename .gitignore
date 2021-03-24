@@ -5,6 +5,10 @@
 # Session Data files
 .RData
 
+# MACOS
+.DS_Store
+
+#
 # User-specific files
 .Ruserdata
 
