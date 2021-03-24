@@ -1,0 +1,359 @@
+---
+title: "Supervised learning examples"
+author: "C.A. Kapourani"
+output: 
+  html_document: 
+    highlight: haddock
+    theme: cerulean
+    number_sections: true
+    toc: yes
+---
+
+Setup for this file and we also set a common theme for our plots below.
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, results = "hide")
+# Define ggplot2 theme for scatter plots
+.scatter_theme <- function(legend_pos = "top") {
+  p <- theme(
+    plot.title = element_text(hjust = 0.5, size = rel(1.1),
+                              margin = margin(0,0,2,0), color = "black"),
+    legend.position = legend_pos,
+    legend.title = element_blank(),
+    axis.line = element_line(),
+    panel.background = element_blank(),
+    axis.text = element_text(color = "black", size = rel(1)),
+    axis.title = element_text(color = "black", size = rel(1.2))
+  )
+  return(p)
+}
+```
+
+# Focus
+Here we will focus mostly on the code without background details. See masterclass slides for more information in each section.
+
+
+# Linear regression
+## Housing prices example
+First we create synthetic data of housing prices. Initially let's assume our input/covariate $x$ is house size and output/target $y$ is house price.
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+# House size
+x <- c(35, 36, 38, 42, 50, 55, 59, 72, 77, 82, 84, 92)
+# House price is y = 300 + 10 * x + noise 
+# If we didn't add the noise, then all points would fall in a line!
+y <- 300 + 10 * (x + rnorm(length(x), mean = 0, sd = 5))
+# Create dataframe containing the generated data
+house_price_dt <- data.frame(house_size = x, house_price = y)
+```
+
+Below we plot the data to show the relationship between house size and house price.
+```{r}
+library(ggplot2)
+ggplot(house_price_dt, aes(x = house_size, y = house_price)) +
+  xlab("House size (m^2)") + ylab("House price (£)") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme()
+```
+
+We start by randomly choosing the values of parameters $\theta_{0} = 600$ (intercept) and $\theta_{1} == 2$ (slope). As we would expect, our guess would not be that great. 
+```{r}
+library(ggplot2)
+ggplot(house_price_dt, aes(x = house_size, y = house_price)) +
+  xlab("House size (m^2)") + ylab("House price (£)") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme() +
+  geom_abline(intercept = 600, slope = 2, col = "red", linetype = "dashed")
+```
+
+To obtain the optimal values for the parameters, we fit a linear regression model using the `lm` function from R. Type `?lm` to read the documentation for this function.
+```{r}
+# Fit linear regression model
+f <- lm(house_price ~ house_size, data = house_price_dt)
+# Show summary output. In our example we are interested in the 
+# estimated values of intercept (theta0) and house_size (theta1).
+summary(f)
+```
+
+__Note__ that in statistical analysis, we are mostly interested in the values of parameters and whether their effect is significant. The additional columns after each coefficient give us this kind of information. For machine learning mostly we are interested in how well we fit our data and the performance of the prediction in unseen data.
+
+WE can extract the coefficient (parameter) values from the `lm` output as follows:
+```{r}
+coef(f)
+```
+
+Using these optimal values we see a much better fit to our data.
+```{r}
+library(ggplot2)
+ggplot(house_price_dt, aes(x = house_size, y = house_price)) +
+  xlab("House size (m^2)") + ylab("House price (£)") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme() +
+  geom_abline(intercept = coef(f)[1], slope = coef(f)[2], col = "red", linetype = "dashed")
+```
+
+Finally, we can create new test data (note that we need to only provide x, i.e. the `house_size`), and check what would be the predicted _house_price_.
+```{r}
+# Introduce two test datasets, note we only need to provide x.
+newdata <- data.frame(house_size = c(55, 80))
+pred_y <- predict(f, newdata)
+print(pred_y)
+```
+
+Below we show botht the training data (black dots) and predicted values for the test data (blue dots). 
+```{r}
+# Combine predicted data in data.frame object for plotting
+pred_dt <- data.frame(house_size = newdata, pred_house_price = pred_y)
+library(ggplot2)
+ggplot(house_price_dt, aes(x = house_size, y = house_price)) +
+  xlab("House size (m^2)") + ylab("House price (£)") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme() +
+  geom_point(data = pred_dt, mapping = aes(x = house_size, y = pred_house_price), 
+             col = "darkblue", size = 4, shape = 19) +
+  geom_abline(intercept = coef(f)[1], slope = coef(f)[2], col = "red", linetype = "dashed")
+```
+
+
+# Logistic regression
+Predicting whether a tumour is benign (0) or malignant (1) based on some input features. To keep things simple, we will use only one input feature `x`, the tumour size.
+
+We generate synthetic data as follows
+```{r}
+# Tumour sizes in cm
+x <- c(0.4, 0.45, 0.5, 0.6, 0.65, 0.7, 0.8, 0.85, 0.88, 0.9, 0.93, 0.98, 1, 1.1, 1.2, 1.25, 1.3, 1.4)
+# Benign (0) or Malignant (1)
+y <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1)
+# Create data.frame
+tumour_dt <- data.frame(tumour_size = x, tumour_type = y)
+```
+
+Next, we explore how our data look like.
+```{r}
+# Plot synthetic data
+ggplot(tumour_dt, aes(x = tumour_size, y = tumour_type, color = factor(tumour_type))) +
+  xlab("Tumour size") + ylab("Tumour type") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme(legend_pos = "none")
+```
+We observe that for small tumour sizes, most likely the tumour is `benign`, and we are quite uncertain if the tumour size is around 0.9cm, since we have cases/individuals that have both benign and malignant tumours. This would imply that we are more uncertain for those cases.
+
+Let's assume the output `y` is continuous (which is this case is not) and run linear regression.
+```{r}
+# Run linear regression model
+f <- lm(tumour_type ~ tumour_size, data = tumour_dt)
+
+# Plot the fitted line
+ggplot(tumour_dt, aes(x = tumour_size, y = tumour_type, color = factor(tumour_type))) +
+  xlab("Tumour size") + ylab("Tumour type") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme(legend_pos = "none") +
+  ylim(-1, 2) +
+  geom_abline(intercept = coef(f)[1], slope = coef(f)[2], col = "red", linetype = "dashed") +
+  geom_hline(yintercept = 0.5, linetype = "dotted", col = "blue", size = 0.5)
+```
+
+
+## Defining logistic function
+Below we use a specific function (called logistic or sigmoid), to `squash` any output to (0,1).
+```{r}
+# Define logistic/sigmoid function
+logistic <- function(x) {
+  return( 1 / (1 + exp(-x)))
+}
+```
+
+We can plot the shape of the logistic function as shown below. Note that now we can use the output of the logistic function as some sort of probability, where values close to 0.5 (on y-axis) denote high uncertainty about the class label. In our tumour type example, we would expect the logistic function to have high uncertainty for samples with `tumour_size` around 0.9.
+```{r}
+# Input x
+x <- seq(-5, 5, by = 0.1)
+# y lies in (0, 1)
+y <- logistic(x)
+
+ggplot(data.frame(x = x , y = y), aes(x = x, y = y)) +
+  xlab("input") + ylab("output") +
+  geom_line(size = 1.5) + theme_classic() + .scatter_theme() +
+  geom_hline(yintercept = 0.5, linetype = "dotted", col = "blue", size = 0.5)
+```
+
+## Run logistic regression on tumour type example
+Use logistic regression to fit discrete (binary) outputs y. Note that we use the `glm` function, which stands for Generalised Linear Model. To denote that we perform logistic regression we need to define `family = "binomial"`. 
+```{r}
+f_glm <- glm(tumour_type ~ tumour_size, data = tumour_dt, family = "binomial")
+summary(f_glm)
+```
+Output is really similar to when running the `lm` function. 
+
+Let's make new predictions on test data now.
+```{r}
+predict(f_glm, newdata = data.frame(tumour_size = c(0.4, 1.4)), type = "response")
+```
+
+Plot the fitted function together with the predictions for the test data.
+```{r}
+y_pred <- logistic(coef(f_glm)[1] + coef(f_glm)[2] * tumour_dt$tumour_size)
+pred_f <- data.frame(x = tumour_dt$tumour_size, y_pred = y_pred)
+
+# Plot the fitted line
+ggplot(tumour_dt, aes(x = tumour_size, y = tumour_type, color = factor(tumour_type))) +
+  xlab("Tumour size") + ylab("Tumour type") +
+  geom_point(size = 2) + theme_classic() + .scatter_theme(legend_pos = "none") +
+  geom_line(data = pred_f, mapping = aes(x = x, y = y_pred), 
+             col = "red3", size = 1) +
+  geom_hline(yintercept = 0.5, linetype = "dotted", col = "blue", size = 0.5)
+```
+
+# Neural Network example (non-linear models)
+
+This is mostly adapted from the following blog: https://selbydavid.com/2018/01/09/neural-network/
+
+## Generate synthetic data
+```{r}
+two_features <- function(N = 200,
+                        radians = 3*pi,
+                        theta0 = pi/2,
+                        labels = 0:1) {
+  N1 <- floor(N / 2)
+  N2 <- N - N1
+  theta <- theta0 + runif(N1) * radians
+  spiral1 <- cbind(-theta * cos(theta) + runif(N1),
+                   theta * sin(theta) + runif(N1))
+  spiral2 <- cbind(theta * cos(theta) + runif(N2),
+                   -theta * sin(theta) + runif(N2))
+  points <- rbind(spiral1, spiral2)
+  classes <- c(rep(0, N1), rep(1, N2))
+  data.frame(x1 = points[, 1],
+             x2 = points[, 2],
+             class = factor(classes, labels = labels))
+}
+set.seed(42)
+tumour_dt <- two_features(labels = c('Benign', 'Malignant'))
+```
+
+Plot simulated synthetic data. As we can see, a linear model would not be able to classify correctly these examples.
+```{r plot_data1}
+library(ggplot2)
+theme_set(theme_classic())
+ggplot(tumour_dt) +
+  aes(x1, x2, colour = class) +
+  geom_point() +
+  labs(x = "Tumour size", y = "BRCA1 expression") + 
+  theme(legend.position = "top")
+```
+
+Let's first fit a logistic regression model and show its accuracy. We binarize the predictions, where probabilities > 0.5 are set to 1.
+```{r}
+# Fit logistic regression
+logreg <- glm(class ~ x1 + x2, data = tumour_dt, family = "binomial")
+# Obtain number of correct assignments
+correct <- sum((fitted(logreg) > .5) + 1 == as.integer(tumour_dt$class))
+correct / nrow(tumour_dt)
+```
+
+
+Show decision boundary and colour the examples according to their predictions.
+```{r}
+# Plot decision boundary
+beta <- coef(logreg)
+grid <- expand.grid(x1 = seq(min(tumour_dt$x1) - 1,
+                             max(tumour_dt$x1) + 1,
+                             by = .25),
+                    x2 = seq(min(tumour_dt$x2) - 1,
+                             max(tumour_dt$x2) + 1,
+                             by = .25))
+grid$class <- factor((predict(logreg, newdata = grid) > 0) * 1,
+                     labels = c('Benign', 'Malignant'))
+ggplot(tumour_dt) + aes(x1, x2, colour = class) +
+  geom_point(data = grid, size = .5) +
+  geom_point() +
+  labs(x = "Tumour size", y = "BRCA1 expression") +
+  geom_abline(intercept = -beta[1]/beta[3],
+              slope = -beta[2]/beta[3]) + 
+  theme(legend.position = "top")
+```
+
+## Neural network implementation
+No need to understand this code, you would need a more technical background, which we will not cover in this masterclass. Briefly, you can think of the `feedforward` function as making predictions based on the given set of weights/parameters. Then, the `backpropagate` function will adapt/train the weights to reduce the error between current predictions and actual outputs.
+```{r}
+sigmoid <- function(x) 1 / (1 + exp(-x))
+feedforward <- function(x, w1, w2) {
+  z1 <- cbind(1, x) %*% w1
+  h <- sigmoid(z1)
+  z2 <- cbind(1, h) %*% w2
+  list(output = sigmoid(z2), h = h)
+}
+backpropagate <- function(x, y, y_hat, w1, w2, h, learn_rate) {
+  dw2 <- t(cbind(1, h)) %*% (y_hat - y)
+  dh  <- (y_hat - y) %*% t(w2[-1, , drop = FALSE])
+  dw1 <- t(cbind(1, x)) %*% (h * (1 - h) * dh)
+  
+  w1 <- w1 - learn_rate * dw1
+  w2 <- w2 - learn_rate * dw2
+  
+  list(w1 = w1, w2 = w2)
+}
+train <- function(x, y, hidden = 5, learn_rate = 1e-2, iterations = 1e4) {
+  d <- ncol(x) + 1
+  w1 <- matrix(rnorm(d * hidden), d, hidden)
+  w2 <- as.matrix(rnorm(hidden + 1))
+  for (i in 1:iterations) {
+    ff <- feedforward(x, w1, w2)
+    bp <- backpropagate(x, y,
+                        y_hat = ff$output,
+                        w1, w2,
+                        h = ff$h,
+                        learn_rate = learn_rate)
+    w1 <- bp$w1; w2 <- bp$w2
+  }
+  list(output = ff$output, w1 = w1, w2 = w2)
+}
+```
+
+## Training on 5 hidden nodes
+Train the __neural network__ using 5 hidden nodes (current implementation assumes one hidden layer).
+```{r}
+set.seed(123)
+x <- data.matrix(tumour_dt[, c('x1', 'x2')])
+y <- ifelse(tumour_dt$class == 'Malignant', 1, 0)
+nnet5 <- train(x, y, hidden = 5, iterations = 3e5)
+```
+
+
+Compute NN accuracy
+```{r}
+# Run once the feedforward function with the final trained weights.
+ff_grid <- feedforward(x = data.matrix(grid[, c('x1', 'x2')]),
+                       w1 = nnet5$w1,
+                       w2 = nnet5$w2)
+# Go from probabilities to class predictions
+grid$class <- factor((ff_grid$output > .5) * 1,
+                     labels = levels(tumour_dt$class))
+# Compute accuracy
+mean((nnet5$output > .5) == y)
+```
+
+Show decision boundary, note that now it is not anymore linear.
+```{r}
+ggplot(tumour_dt) + aes(x1, x2, colour = class) +
+  geom_point(data = grid, size = .5) +
+  geom_point() +
+  theme(legend.position = "top") +
+  labs(x = "Tumour size", y = "BRCA1 expression")
+```
+
+## Training on 35 hidden nodes
+Finally we train a more complex NN, that has 35 hidden nodes where we expect it to capture better the properties of our data. We say that we have a more __flexible__ model.
+```{r}
+set.seed(1234)
+nnet35 <- train(x, y, hidden = 35, iterations = 1e5)
+ff_grid <- feedforward(x = data.matrix(grid[, c('x1', 'x2')]),
+                       w1 = nnet35$w1,
+                       w2 = nnet35$w2)
+grid$class <- factor((ff_grid$output > .5) * 1,
+                     labels = levels(tumour_dt$class))
+mean((nnet35$output > .5) == y)
+```
+
+Below we can see that the more flexible NN, was able to correctly classify all of our samples.
+```{r}
+ggplot(tumour_dt) + aes(x1, x2, colour = class) +
+  geom_point(data = grid, size = .5) +
+  geom_point() +
+  theme(legend.position = "top") +
+  labs(x = "Tumour size", y = "BRCA1 expression")
+```
+

@@ -1,0 +1,81 @@
+---
+title: "Unsupervised learning examples"
+author: "C.A. Kapourani"
+output: 
+  html_document: 
+    highlight: haddock
+    theme: cerulean
+    number_sections: true
+    toc: yes
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, results = "hide")
+```
+
+# Generate data from Gaussian distribution
+First we show the density of a Gaussian distribution, with mean = 1, and standard deviation = 1.
+```{r}
+# Density of Gaussian distribution
+x <- seq(-1, 3, length = 1000)
+hx <- dnorm(x, mean = 1, sd = 1)
+
+plot(x, hx, type = "l", lty = 1, xlab="x", 
+     ylab = "p(x)", col = "red3", lwd = 3)
+```
+
+Now we generate samples from this normal distribution and plot a histogram.
+```{r}
+x <- rnorm(10000, mean = 1, sd = 1)
+mu <- sum(x) / length(x)
+sigma <- sd(x)
+hist(x)
+```
+
+# PCA as data compression algorithm
+This example mostly follows the following blog: https://rpubs.com/aaronsc32/image-compression-principal-component-analysis
+
+First we load the jpeg image and since it is a coloured image, we store each channel in a different matrix.
+```{r}
+library(jpeg)
+cat <- readJPEG('figures/cat.jpg')
+
+# Extract RGB colour
+r <- cat[,,1]
+g <- cat[,,2]
+b <- cat[,,3]
+```
+
+Next we run PCA (by calling the `prcomp` function) on each colour channel independently and finally colect everything in a list.
+```{r}
+# Perform PCA on each colour value matrix
+cat.r.pca <- prcomp(r, center = FALSE)
+cat.g.pca <- prcomp(g, center = FALSE)
+cat.b.pca <- prcomp(b, center = FALSE)
+
+# Collect everything in a list
+rgb.pca <- list(cat.r.pca, cat.g.pca, cat.b.pca)
+```
+
+Reconstruct the images from the kth principal component.
+```{r}
+# How many components to use to reconstruct the original image
+pcs <- c(1, 2, 4, 10, 15, 46, 89, 131, 345)
+
+#for (i in seq.int(3, round(nrow(cat) - 10), length.out = 10)) {
+for (i in pcs){
+  pca.img <- sapply(rgb.pca, function(j) {
+    compressed.img <- j$x[,1:i] %*% t(j$rotation[,1:i])
+  }, simplify = 'array')
+  writeJPEG(pca.img, paste('figures/cat_comp_', round(i,0), '_pcs.jpg', sep = ''))
+}
+```
+
+
+Finally we can compute the proportion of variance explained. We just show the top 30 PCs for visualisation purposes.
+```{r}
+var_explained <- cat.b.pca$sdev / sum(cat.b.pca$sdev)
+plot(seq(1:30), var_explained[1:30], type = "l")
+points(seq(1:30), var_explained[1:30])
+```
+
