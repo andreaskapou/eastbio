@@ -16,7 +16,15 @@ We will be mostly using R markdown, which is an interactive document that allows
 ### Installing R packages
 To not re-invent the wheel, researchers create packages, which bundle together useful functions (and potentially datasets) which we can then use directly. This will be essential for our single cell analysis, where we will mostly use the `Seurat` package [https://satijalab.org/seurat/](https://satijalab.org/seurat/). 
 
-For our analysis we will require lots of additional packages, which I have populated in the `00_install_packages.R` file. Open this file and run it from within RStudio. This process might take a few minutes.
+For our analysis we will require lots of additional packages, which I have populated in the `00_install_packages.R` file. Open this file and run it from within RStudio or from terminal. This process might take a few minutes. 
+If you see the following message it means you already have installed some of the packages. Try then running independently each line in the console (bottom panel in Rstudio).
+
+`
+Updating Loaded Packages
+One or more of the packages to be updated are currently loaded. 
+Restarting R prior to install is highly recommended.
+...
+`
 
 ## Supervised and unsupervised ML
 The `01_supervised_learning.Rmd` and `02_unsupervised_learning.Rmd` files contain simple code to re-create some of the plots I will show in the masterclass. I added them simply for completeness, so feel free to skip them, and you can get back to those if you feel you want to understand some of these concepts better.

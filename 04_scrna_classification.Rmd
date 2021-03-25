@@ -1,0 +1,143 @@
+---
+title: "Classifying single cell datasets"
+author: "C.A. Kapourani"
+output: 
+  html_document: 
+    highlight: haddock
+    theme: cerulean
+    number_sections: true
+    toc: yes
+---
+
+# Introduction
+In this tutorial we will show how one could perform supervised learning to predict (annotate) cell types from a new scRNA-seq dataset, by training a classifier on pre-annotated dataset (e.g. using data from the Human Cell Atlas or a different study performed on the same tissue).
+
+To do so we will use the [scPred](https://github.com/powellgenomicslab/scPred/) package.
+
+First we install `scPred` and the `harmony` packages.
+```{r}
+devtools::install_github("immunogenomics/harmony")
+devtools::install_github("powellgenomicslab/scPred")
+```
+
+## Load libraries and set up R markdown settings
+```{r setup_knitr,  cache = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.path = "out_scpred/",
+  fig.width = 12,
+  fig.height = 8,
+  cache.path = ".cache/"
+)
+```
+
+```{r load_libraries}
+library(Seurat)
+library(scPred)
+library(harmony)
+library(dplyr) 
+library(patchwork)
+library(purrr)
+```
+
+
+# Loading PBMC data
+Here we will again focus on PBMC data. However, now we will use PBMCs from two different individuals. Our goal then will be to train a supervised model (classifier) on cells from one individual, and then use this information to annotate the cell types present in the other individual, which we will consider as our test set.
+
+Briefly, `scPred` uses the cell embeddings from a PCA to make inferences about cell-type identity. However —unlike clustering—, `scPred` trains classifiers for each cell type of interest in a supervised manner by using the known cell identity from a reference/training dataset to guide the classification of cells in a different/test data set.
+
+```{r}
+# Let's call the data from 1st individual as training set
+train <- scPred::pbmc_1
+# The data from 2nd individual test set
+test <- scPred::pbmc_2
+```
+
+## Process the training data
+Perform normalisation, feature selection, scaling and dimensionality reduction using 'piping'. 
+```{r}
+train <- train %>%
+  NormalizeData() %>%
+  FindVariableFeatures() %>%
+  ScaleData() %>%
+  RunPCA() %>%
+  RunUMAP(dims = 1:30)
+```
+
+## Visualising training data
+```{r}
+# 'cell_type' is a column already provided by the scPred package, 
+# in general this would be the output from another study.
+DimPlot(train, group.by = "cell_type", label = TRUE, repel = TRUE)
+```
+
+# Training classifiers with `scPred`
+`scPred` will train the classifier on the PCA space (again we observe the same patter, where to avoid the __curse of dimensionality__, we first reduce the dimension of the data and subsequently perform downstream analysis).
+
+First we create the feature space, which essentially are all principal components that we computed in the previous step.
+```{r}
+train <- getFeatureSpace(train, "cell_type")
+```
+
+Next we we train the classifiers for each cell using the `trainModel` function. By default, `scPred` will use a _support vector machine_ (SVM) with a radial kernel. This will perform non-linear classification, so is closer to the neural network application we showed in the slides, as opposed to using _logistic regression_, which is a linear classifier.
+
+
+```{r}
+# Perform training. This will take a few minutes to perform training.
+train <- trainModel(train)
+```
+
+Classification probabilities for each cell in the reference/training data can be accessed using the `get_probabilities` method:
+```{r}
+get_probabilities(train) %>% head()
+```
+
+We can also show performance metrics per cell type
+```{r}
+get_scpred(train)
+```
+
+
+# Cell classification of test data
+Having trained the model, we can now use the data from the second individual to perform cell type prediction.
+
+First we need to perform the exact same normalisation method, so expression patterns across training and test data are in the same scale.
+```{r}
+test <- NormalizeData(test)
+```
+
+Now we can classify the cells from the test data using the `scPredict` function. The first argument corresponds to the test object and the second to the train object.
+
+Internally, `scPred` uses `Harmony` (a data integration method) to align the test data onto the training low-dimensional space used as reference. Once the data is aligned, cells are classified using the pre-trained models. This is a bit more technical aspect of the paper and would require some background on data integration methods.
+```{r}
+test <- scPredict(test, train)
+```
+
+The final classifications are stored in the `scpred_prediction` column of the Seurat metadata information. Also, the aligned data (using Harmony) are stored as a `scpred` reduction slot.
+
+Let’s plot the classifications over the aligned data.
+```{r}
+DimPlot(test, group.by = "scpred_prediction", reduction = "scpred")
+```
+
+Now we can also run UMAP using the aligned data as an input.
+```{r}
+test <- RunUMAP(test, reduction = "scpred", dims = 1:30)
+```
+
+Let's plot the predicted labels on the UMAP space and compare them with the true annotation lables (actually not entirely true, but what we would obtain using the unsupervised approach we explained in the previous tutorial and assign cell types based on marker genes).
+```{r}
+gg1 <- DimPlot(test, group.by = "scpred_prediction", label = TRUE, repel = TRUE)
+gg2 <- DimPlot(test, group.by = "cell_type", label = TRUE, repel = TRUE)
+
+gg1 + gg2
+```
+In general, we observe a pretty good agreement between the predicted and assigned cell types. We can also create a confusion matrix to check our prediction performance.
+```{r}
+crossTab(test, "cell_type", "scpred_prediction")
+```
+
+# Summary
+In this tutorial we showed how we can leverage supervised machine learning methods to quickly (and robustly) annotate cell types from a newly generated scRNA-seq dataset, by training on large and well annotated datasets (e.g. from the Human Cell Atlas).
+
+
