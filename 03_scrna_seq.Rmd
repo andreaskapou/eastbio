@@ -10,13 +10,12 @@ output:
 ---
 
 ## Analysis of scRNA-seq data
-The `03_scrna_seq.Rmd` file contains a common pipeline for analysing single cell RNA-seq data using the `Seurat` package. This is 
+The `03_scrna_seq.Rmd` file contains a common pipeline for analysing single-cell RNA-seq data using the `Seurat` package.
 
 # Introduction and outline
 This workshop leans heavily on the tutorials used in the Seurat package [https://satijalab.org/seurat/articles/get_started.html](https://satijalab.org/seurat/articles/get_started.html). Also, I have adapted content from the single cell workshop given at the IGMM from Alan O'Calaghan and Catalina Vallejos.
 
-Here we will go through some basic concepts in scRNAseq data processing, chiefly pre-processing, QC, normalisation, and selection of variable genes. We'll also show how to perform dimensionality reduction, clustering,
-and differential expression analysis within Seurat. We will also use tailored methods to perform cell type classification using the `scPred` approach. Finally, we will briefly perform analysis on spatial transcriptomics data.
+Here we will go through some basic concepts in scRNAseq data processing, chiefly pre-processing, QC, normalisation, and selection of variable genes. We'll also show how to perform dimensionality reduction, clustering, and differential expression analysis within Seurat. Next we will use tailored methods to perform cell type classification using the `scPred` method (see `04_srna_clasification.Rmd` file)
 
 
 ## Rmarkdown tips

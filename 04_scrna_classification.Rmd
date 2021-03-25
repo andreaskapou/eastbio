@@ -10,7 +10,7 @@ output:
 ---
 
 # Introduction
-In this tutorial we will show how one could perform supervised learning to predict (annotate) cell types from a new scRNA-seq dataset, by training a classifier on pre-annotated dataset (e.g. using data from the Human Cell Atlas or a different study performed on the same tissue).
+In this tutorial we will show how one could perform supervised learning to predict (annotate) cell types from a new scRNA-seq dataset, by training a classifier on pre-annotated dataset (e.g. using data from the Human Cell Atlas or a different study performed on the same tissue/condition).
 
 To do so we will use the [scPred](https://github.com/powellgenomicslab/scPred/) package.
 
