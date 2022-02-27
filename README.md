@@ -5,7 +5,7 @@ At the top right of this Github page, click on the `Code` green button and then 
 
 ## Software installation
 
-This course will use the `R` programming language. Download and install `R` according to your operating system from [https://cran.r-project.org/](https://cran.r-project.org/). The latest stable version is R 4.0.4. For compatibility issues with current libraries is best advised to use version of R > 4.0.0. 
+This course will use the `R` programming language. Download and install `R` according to your operating system from [https://cran.r-project.org/](https://cran.r-project.org/). It is best advised to use version of R > 4.0.0. 
 
 Along with R, we will also download `Rstudio` which is an integrated development environment for R, which will make our interaction with R much easier. Download the (free) version from [https://rstudio.com/products/rstudio/download/#download](https://rstudio.com/products/rstudio/download/#download).
 
