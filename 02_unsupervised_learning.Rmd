@@ -33,9 +33,9 @@ hist(x)
 ```
 
 # PCA as data compression algorithm
-This example mostly follows the following blog: https://rpubs.com/aaronsc32/image-compression-principal-component-analysis
+This example mostly follows this blog: https://rpubs.com/aaronsc32/image-compression-principal-component-analysis
 
-First we load the jpeg image and since it is a coloured image, we store each channel in a different matrix.
+First we load the jpeg image and since it is a coloured image, we store each channel in a different matrix. The cat image is represented as three 600x398 matrices as an array with each matrix corresponding to the RGB color value scheme.
 ```{r}
 library(jpeg)
 cat <- readJPEG('figures/cat.jpg')

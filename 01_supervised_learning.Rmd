@@ -231,7 +231,7 @@ theme_set(theme_classic())
 ggplot(tumour_dt) +
   aes(x1, x2, colour = class) +
   geom_point() +
-  labs(x = "Tumour size", y = "BRCA1 expression") + 
+  labs(x = "Tumour size", y = "Cell density") + 
   theme(legend.position = "top")
 ```
 
@@ -260,7 +260,7 @@ grid$class <- factor((predict(logreg, newdata = grid) > 0) * 1,
 ggplot(tumour_dt) + aes(x1, x2, colour = class) +
   geom_point(data = grid, size = .5) +
   geom_point() +
-  labs(x = "Tumour size", y = "BRCA1 expression") +
+  labs(x = "Tumour size", y = "Cell density") +
   geom_abline(intercept = -beta[1]/beta[3],
               slope = -beta[2]/beta[3]) + 
   theme(legend.position = "top")
@@ -332,7 +332,7 @@ ggplot(tumour_dt) + aes(x1, x2, colour = class) +
   geom_point(data = grid, size = .5) +
   geom_point() +
   theme(legend.position = "top") +
-  labs(x = "Tumour size", y = "BRCA1 expression")
+  labs(x = "Tumour size", y = "Cell density")
 ```
 
 ## Training on 35 hidden nodes
@@ -354,6 +354,6 @@ ggplot(tumour_dt) + aes(x1, x2, colour = class) +
   geom_point(data = grid, size = .5) +
   geom_point() +
   theme(legend.position = "top") +
-  labs(x = "Tumour size", y = "BRCA1 expression")
+  labs(x = "Tumour size", y = "Cell density")
 ```
 

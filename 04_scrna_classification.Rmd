@@ -1,5 +1,5 @@
 ---
-title: "Classifying single cell datasets"
+title: "Annotating single cell datasets"
 author: "C.A. Kapourani"
 output: 
   html_document: 
@@ -15,7 +15,7 @@ In this tutorial we will show how one could perform supervised learning to predi
 To do so we will use the [scPred](https://github.com/powellgenomicslab/scPred/) package.
 
 First we install `scPred` and the `harmony` packages.
-```{r}
+```{r, eval=FALSE}
 devtools::install_github("immunogenomics/harmony")
 devtools::install_github("powellgenomicslab/scPred")
 ```
@@ -54,7 +54,7 @@ test <- scPred::pbmc_2
 ```
 
 ## Process the training data
-Perform normalisation, feature selection, scaling and dimensionality reduction using 'piping'. 
+Perform normalisation, feature selection, scaling and dimensionality reduction using `piping`. 
 ```{r}
 train <- train %>%
   NormalizeData() %>%
@@ -72,7 +72,7 @@ DimPlot(train, group.by = "cell_type", label = TRUE, repel = TRUE)
 ```
 
 # Training classifiers with `scPred`
-`scPred` will train the classifier on the PCA space (again we observe the same patter, where to avoid the __curse of dimensionality__, we first reduce the dimension of the data and subsequently perform downstream analysis).
+`scPred` will train the classifier on the PCA space (again we observe the same pattern, where to avoid the __curse of dimensionality__, we first reduce the dimension of the data and subsequently perform downstream analysis).
 
 First we create the feature space, which essentially are all principal components that we computed in the previous step.
 ```{r}
@@ -126,12 +126,13 @@ test <- RunUMAP(test, reduction = "scpred", dims = 1:30)
 ```
 
 Let's plot the predicted labels on the UMAP space and compare them with the true annotation lables (actually not entirely true, but what we would obtain using the unsupervised approach we explained in the previous tutorial and assign cell types based on marker genes).
-```{r}
+```{r, fig.width=12, fig.height=6}
 gg1 <- DimPlot(test, group.by = "scpred_prediction", label = TRUE, repel = TRUE)
 gg2 <- DimPlot(test, group.by = "cell_type", label = TRUE, repel = TRUE)
 
 gg1 + gg2
 ```
+
 In general, we observe a pretty good agreement between the predicted and assigned cell types. We can also create a confusion matrix to check our prediction performance.
 ```{r}
 crossTab(test, "cell_type", "scpred_prediction")

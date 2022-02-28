@@ -58,12 +58,14 @@ Let's have a look at its structure. Due to the large amount of non-expressed gen
 ```{r}
 # Rows denote number of genes and columns number of cells
 dim(pbmc_counts)
-# Show 10 genes (from 50-60th row) and 10 cells (from 60-70th column)
+# Show 11 genes (from 50-60th row) and 11 cells (from 60-70th column)
 pbmc_counts[50:60, 60:70]
 ```
 
-We can observe that the scRNA-seq data are in general really sparse! Also __note__ that in the masterclass we used to represent features (genes) in columns and examples/data (cells) in rows. The common practice for biological data is to transpose the matrix.
+We can observe that the scRNA-seq data are in general really sparse! 
 
+<!-- Also __note__ that in the masterclass we used to represent features (genes) in columns and examples/data (cells) in rows. The common practice for biological data is to transpose the matrix. -->
+S
 ```{r}
 # We can select specific genes of interest by their name
 pbmc_counts[c("CD3D", "TCL1A", "MS4A1"), 1:30]
@@ -97,7 +99,7 @@ pbmc@meta.data[1:10, ]
 
 
 # Cell QC
-Seurat allows us to easily explore cell QC metrics and `filter` cells based on user defines criteria. 
+Seurat allows us to easily explore cell QC metrics and `filter` cells based on user defined criteria. 
 As seen, we can attempt to identify barcodes (cells) containing only ambient RNA. We can also filter cells based on the number of features they express (in other words, their complexity), their library size, and their mitochondrial gene proportion.
 
 Barcodes with very low complexity or library size relative to all others may represent empty droplets or cells with very low capture efficiency. Barcodes with particularly high complexity or library size may indicate doublets, but they may also be normal cells. Some packages advocate dropping cells that exceed an upper bound on complexity or library size; however, there exist more sensitive ways of identifying doublets (we will not cover those in this tutorial, but you can check the [scrublet](https://europepmc.org/article/pmc/pmc6625319) package).
@@ -114,14 +116,14 @@ pbmc@meta.data[1:5, ]
 Next we can visualise the QC metrics and make data driven decision on the thresholds.
 ```{r}
 # Visualize QC metrics independently
-VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(pbmc, features = c("nFeature_RNA", "percent.mt"), ncol = 2)
 ```
 
 ```{r}
 # We can also use the FeatureScatter function to visualize feature-feature relationships.
-plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot1 <- FeatureScatter(pbmc, feature1 = "nFeature_RNA", feature2 = "percent.mt")
 plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-plot1 + plot2
+plot1
 ```
 
 Based on these plots, we can then filter low quality cells, essentially removing around 60 cells.
@@ -139,6 +141,10 @@ The division by total expression is done to change all expression counts to a re
 
 ```{r}
 pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+```{r}
+pbmc@assays$RNA@data[50:60, 1:5]
 ```
 
 # Feature selection
@@ -162,10 +168,16 @@ plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
 plot2
 ```
 
+
 # Scaling the data
 After feature selection, we will also scale the normalised expression data, that is we will _mean center the data_, i.e. subtract the mean. We will also divide by the standard deviation to make everything to a ‘standard normal’, where the mean is zero and the standard deviation is 1. We perform this step since dimensionality reduction techniques, like PCA, require scaled data.
 ```{r}
 pbmc <- ScaleData(pbmc)
+```
+
+```{r}
+pbmc@assays$RNA@scale.data[1:5, 1:5]
+dim(pbmc@assays$RNA@scale.data)
 ```
 
 # Linear dimensionality reduction
@@ -187,6 +199,11 @@ pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc),
                npcs = 50)
 ```
 
+```{r}
+pbmc@reductions$pca
+```
+
+
 
 We can create a __scree plot__ to visualise the proportion of variability explained by each PC (Seurat calls it `ElbowPlot`).
 ```{r}
@@ -200,7 +217,7 @@ We can plot the first 2 PCs and then colour each cell (each dot corresponds to a
 
 We also observe that according to the first 2 PCs there seem to be __three__ major cell sub-populations in our data.
 ```{r}
-FeaturePlot(pbmc, dims = c(1, 2), features = c("nFeature_RNA", "percent.mt"))
+FeaturePlot(pbmc, dims = c(1, 2), features = c("nFeature_RNA"))
 ```
 
 ## Visualising output of PCA
@@ -278,6 +295,10 @@ pbmc <- RunUMAP(pbmc, dims = 1:10, reduction = "pca")
 ```
 
 ```{r}
+pbmc@reductions$umap
+```
+
+```{r}
 # Show cluster labels in UMAP space
 DimPlot(pbmc, dims = c(1, 2), group.by = "seurat_clusters", reduction = "umap")
 ```
@@ -293,7 +314,7 @@ pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
 ```
 
 A more visually appealling approach would be to use heatmaps, where we will group cells (columns) together and show the expression levels of the top marker genes per cluster.
-```{r}
+```{r, fig.width=4, fig.height=4}
 top10 <- pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_log2FC)
 DoHeatmap(pbmc, features = top10$gene) + NoLegend()
 ```
@@ -307,7 +328,7 @@ DoHeatmap(pbmc, features = top10$gene) + NoLegend()
 VlnPlot(pbmc, features = c("MS4A1", "CCL5", "TCL1A", "GZMK", "CCR7", "CD79A"))
 ```
 
-```{r}
+```{r, fig.width=10, fig.height=8}
 FeaturePlot(pbmc, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", 
                                "FCGR3A", "LYZ", "PPBP", "CD8A"))
 ```
